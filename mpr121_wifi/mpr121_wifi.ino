@@ -11,18 +11,21 @@ boolean touchStates[12]; //to keep track of the previous touch states
 char passphrase[] = "notatruck";
 char ssid[] = "tubes";
 byte server[] = { 192, 168, 2, 12 }; // Google
-char colorStr[15];
-int r = 0;
-int g = 0;
-int b = 0;
 WiFlyClient client(server, 9000);
 ////--------------------------------------
-
+char colorStr[15];
+byte r = 0;
+byte g = 0;
+byte b = 0;
+const int BRIGHTNESS_UP_PIN = 8;
+const int BRIGHTNESS_DOWN_PIN = 6;
 
 
 void setup(){
   
   Serial.begin(9600);
+  memset (colorStr, 0, sizeof(colorStr));
+  memset (touchStates, 0, sizeof(touchStates));
   //--------------cap sense-------------
   pinMode(irqpin, INPUT);
   digitalWrite(irqpin, HIGH); //enable pullup resistor
@@ -52,12 +55,42 @@ void setup(){
 
 
 
+//--------------------------------------------------------------------------------
 void loop(){
   readTouchInputs();
-  
+  actuateLights();
 }
 
 
+//--------------------------------------------------------------------------------
+void actuateLights() {
+  
+  int inc = 1;
+  
+  if(touchStates[BRIGHTNESS_UP_PIN] == 1) {
+     r+=inc;
+     g+=inc;
+     b+=inc;
+     sendToServer();
+  }
+  
+  if(touchStates[BRIGHTNESS_DOWN_PIN] == 1) {
+     r-=inc;
+     g-=inc;
+     b-=inc;
+     sendToServer();
+  } 
+ 
+}
+
+
+void sendToServer() {
+ snprintf(colorStr, sizeof(colorStr)-1, "%d,%d,%d", r,g,b);
+  Serial.print("Sending: ");
+  Serial.println(colorStr);
+  client.println(colorStr);}
+
+//--------------------------------------------------------------------------------
 void readTouchInputs(){
   if(!checkInterrupt()){
     
@@ -69,31 +102,22 @@ void readTouchInputs(){
     
     uint16_t touched = ((MSB << 8) | LSB); //16bits that make up the touch states
 
-    
     for (int i=0; i < 12; i++){  // Check what electrodes were pressed
       if(touched & (1<<i)){
-      
         if(touchStates[i] == 0){
           //pin i was just touched
           Serial.print("pin ");
           Serial.print(i);
           Serial.println(" was just touched");
-          client.println(i);
-          
-        
         }else if(touchStates[i] == 1){
           //pin i is still being touched
         }  
-      
         touchStates[i] = 1;      
       }else{
         if(touchStates[i] == 1){
           Serial.print("pin ");
           Serial.print(i);
           Serial.println(" is no longer being touched");
-          client.println(i);
-          
-          //pin i is no longer being touched
        }
         
         touchStates[i] = 0;
@@ -106,7 +130,7 @@ void readTouchInputs(){
 
 
 
-
+//--------------------------------------------------------------------------------
 void mpr121_setup(void){
 
   set_register(0x5A, ELE_CFG, 0x00); 
@@ -181,12 +205,12 @@ void mpr121_setup(void){
   
 }
 
-
+//--------------------------------------------------------------------------------
 boolean checkInterrupt(void){
   return digitalRead(irqpin);
 }
 
-
+//--------------------------------------------------------------------------------
 void set_register(int address, unsigned char r, unsigned char v){
     Wire.beginTransmission(address);
     Wire.write(r);
