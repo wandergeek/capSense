@@ -8,9 +8,9 @@ int irqpin = 2;  // Digital 2
 boolean touchStates[12]; //to keep track of the previous touch states
 
 ////--------------wifi--------------------
-char passphrase[] = "notatruck";
-char ssid[] = "tubes";
-byte server[] = { 192, 168, 2, 12 }; // Google
+char passphrase[] = "peteandtoby101";
+char ssid[] = "TobyAndPete";
+byte server[] = { 192, 168, 1, 157 }; // Google
 WiFlyClient client(server, 9000);
 ////--------------------------------------
 char colorStr[15];
@@ -47,7 +47,8 @@ void setup(){
   Serial.println(WiFly.ip());
   Serial.println("connecting to server...");
   if (client.connect()) {
-    Serial.println("connected");
+    Serial.println("connected, sending test packet");
+    client.println("sup");
   } else {
     Serial.println("connection failed");
   }
